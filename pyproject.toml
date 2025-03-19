@@ -1,0 +1,23 @@
+[project]
+name = "unrayneo"
+version = "0.1.0"
+description = "Tools for installing clean Android on RanNeo X2 AR glasses"
+authors = [
+    {name = "User"}
+]
+readme = "README.md"
+requires-python = "^3.8"
+dependencies = [
+    "pyyaml>=6.0"
+]
+
+[project.scripts]
+take-screenshot = "unrayneo.cli:take_screenshot_command"
+open-android-settings = "unrayneo.cli:open_android_settings_command"
+open-android-dev-settings = "unrayneo.cli:open_android_dev_settings_command"
+list-wifis = "unrayneo.cli:list_wifis_command"
+connect-wifi = "unrayneo.cli:connect_wifi_command"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

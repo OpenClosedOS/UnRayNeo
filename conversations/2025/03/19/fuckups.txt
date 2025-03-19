@@ -1,0 +1,31 @@
+# RanNeo X2 AR Glasses Connection Issues - 2025/03/19
+
+## Issue Description
+During exploration of the native settings on the RanNeo X2 AR glasses, the magnetic USB cable was accidentally unplugged while attempting to take a photo. After this physical disconnection, the glasses could not be detected by ADB even after rebooting, requiring a full reset of the device.
+
+## Commands Run Before Issue
+The following commands were executed via ADB before the disconnection:
+
+1. `am start -n com.android.settings/.Settings` - Opened the Android Settings app
+2. `am start -n com.android.settings/.DevelopmentSettings` - Attempted to open Development Settings (failed)
+3. `am start -n com.android.settings/.Settings\$DeviceInfoSettingsActivity` - Attempted to open About Phone (failed)
+4. `am start -a android.settings.SETTINGS` - Another way to open Settings app
+5. `am start -a android.settings.APPLICATION_DEVELOPMENT_SETTINGS` - Opened Developer Options
+6. `settings get global oem_unlock_allowed` - Read OEM unlock setting (read-only)
+7. `getprop ro.oem_unlock_supported` - Read system property (read-only)
+8. `settings get global adb_enabled` - Read ADB debugging status (read-only)
+
+## Root Cause Analysis
+The issue was primarily caused by the physical disconnection of the magnetic cable. None of the commands executed were write operations that would modify system settings or cause permanent changes to the device. All commands were either navigation commands to open settings pages or read-only commands to check current settings.
+
+The disconnection likely caused the ADB connection to be lost, and the device may have entered an unusual state after the abrupt disconnection during an active ADB session.
+
+## Resolution
+A full reset of the RanNeo X2 AR glasses was required to restore functionality.
+
+## Lessons Learned
+1. Always be careful with the physical connection when working with the glasses, especially the magnetic cable which can be easily disconnected.
+2. Before executing any commands that navigate to system settings or developer options, ensure the connection is stable and the device is properly secured.
+3. When exploring device settings, it's advisable to ask for explicit permission before executing commands, even if they appear to be harmless read-only or navigation commands.
+4. Document all commands executed on the device for troubleshooting purposes in case of unexpected issues.
+5. **ALWAYS ask the USER for confirmation before executing ANY commands on the device.** This issue occurred partly because the ASSISTANT ran multiple ADB commands in succession without explicit user permission for each command. Even seemingly harmless commands could potentially cause issues when executed without proper context or understanding of the current device state.

@@ -1,0 +1,74 @@
+We began exploring the UnRayNeo project, which aims to install a clean version of Android without Chinese spyware on RanNeo X2 AR glasses. After reviewing the README.md file, I noted the project instructions which include storing raw dumps in a secret directory, updating conversation logs after each message, and creating automation scripts (preferably in Python) for interesting capabilities discovered.
+
+The user connected the AR glasses using scrcpy, which allows them to view and control the Android device's screen on their computer. They asked about using an MCP (Model Context Protocol) so that I could also view the screen. After some initial confusion about what MCP referred to (I initially thought it meant Media Control Protocol), we clarified that they were referring to the Model Context Protocol that enables LLMs like me to access custom tools and services.
+
+I checked the MCP configuration file and found it was empty. I then searched for available MCPs that might provide screen sharing capabilities but found no specific MCP designed for screen sharing in the available repositories. I did find some potentially useful MCPs like NutJS Windows Control MCP (for programmatic control over Windows system operations) and Android MCP Server (which might be useful for the Android-based AR glasses).
+
+For screen sharing specifically, I suggested several options: creating a custom MCP for screenshots, using existing tools with MCP, or continuing with scrcpy and using text descriptions for communication. The conversation ended with the user noting that I had forgotten to update the conversations folder as specified in the README instructions.
+
+In our continued session, we successfully set up the Android MCP server to interact with the RanNeo X2 AR glasses. We followed these steps:
+
+1. First, we cloned the Android MCP server repository and attempted to install dependencies using `uv sync`.
+2. We encountered issues with the virtual environment path mismatch, where `VIRTUAL_ENV` was pointing to a different location than expected.
+3. We tried several approaches to fix the configuration, including:
+   - Creating a shell script to run the server with proper logging
+   - Modifying the MCP configuration to use different command formats
+   - Following the exact instructions from the Android MCP server README
+4. After several attempts and debugging with logs, we successfully configured the MCP server to connect to the AR glasses.
+5. We updated the device IP address in the config.yaml file to match the current IP of the glasses (192.168.2.58).
+6. We added an `adb tcpip 5555` command to the startup script to ensure the device was properly configured for TCP/IP connections.
+
+Once the Android MCP server was working, we were able to:
+1. Capture screenshots directly from the AR glasses
+2. List all installed packages, identifying potential Chinese spyware
+3. Analyze the UI layout to see what was currently displayed on the glasses
+4. Execute ADB commands to get detailed system information via `getprop`
+
+The system information revealed that the glasses are running RayNeo OS based on Android 11 with an outdated security patch from May 2022. We identified several Chinese applications and services that would need to be removed to achieve the project's goal of a clean Android installation. Importantly, we discovered that OEM unlocking is allowed on the device, which is promising for installing a custom Android build.
+
+In our most recent session, we explored the native settings of the RanNeo X2 AR glasses by using ADB commands to launch the settings app and navigate to specific pages:
+
+1. We successfully launched the Android Settings app using `am start -n com.android.settings/.Settings`
+2. We accessed the Developer Options using `am start -a android.settings.APPLICATION_DEVELOPMENT_SETTINGS`
+3. We confirmed that USB debugging is enabled by default on the glasses (`settings get global adb_enabled` returned `1`)
+4. We attempted to check OEM unlocking status but received inconclusive results
+
+Unfortunately, during this exploration, the magnetic USB cable connecting the glasses was accidentally unplugged while attempting to take a photo. After this physical disconnection, the glasses could not be detected by ADB even after rebooting, requiring a full reset of the device. This incident highlighted the sensitivity of the RanNeo X2 AR glasses to physical disconnections during active ADB sessions.
+
+We documented this issue in a new `fuckups.txt` file as per the updated README instructions, noting the commands that were run, the root cause analysis, and lessons learned to prevent similar issues in the future. The primary lesson was to be extremely careful with the physical connection when working with the glasses, especially the magnetic cable which can be easily disconnected.
+
+Despite this setback, we gained valuable information about the native settings interface and the developer options available on the glasses, which will be useful for the ultimate goal of installing a clean version of Android without Chinese spyware.
+
+In our latest session, we continued exploring the RanNeo X2 AR glasses by capturing and analyzing screenshots of the device's interface:
+
+1. We successfully implemented a structured approach to screenshot capture, saving images to an organized directory structure at `/home/user/projects/UnRayNeo/secret/screenshots/{DATE}/{TIME}.png`
+2. We captured a screenshot showing a Chinese interface with the text "正在初始化...请等待" which translates to "Initializing... Please wait"
+3. This confirmed that the device is indeed running Chinese software that needs to be replaced as part of the UnRayNeo project
+4. The screenshot capture process was performed using ADB commands: `adb shell screencap -p /sdcard/screenshot.png && adb pull /sdcard/screenshot.png [destination]`
+
+This discovery provides concrete evidence of the Chinese software running on the device and reinforces the importance of the UnRayNeo project's goal to install a clean version of Android. The ability to capture, save, and analyze screenshots will be valuable for documenting the current state of the device and tracking progress as we work toward removing the Chinese spyware.
+
+In our most recent session, we focused on implementing WiFi functionality for the RanNeo X2 AR glasses:
+
+1. We created a comprehensive WiFi module (`wifi.py`) with the following capabilities:
+   - Enabling WiFi on the device using multiple methods
+   - Triggering WiFi scans to discover available networks
+   - Listing available WiFi networks with detailed information (SSID, BSSID, frequency, signal strength, security)
+   - Connecting to specific WiFi networks with password support
+   - Getting information about the current WiFi connection
+   - Updating the MCP server configuration with the device's IP address
+
+2. We implemented two CLI commands:
+   - `list-wifis`: Lists available WiFi networks and shows the current connection status
+   - `connect-wifi`: Connects to a specified WiFi network with options for password and updating the MCP config
+
+3. We successfully tested the `list-wifis` command and observed many available networks in the vicinity
+   - The command properly parsed and displayed network information including signal strength and security details
+   - We added filtering to only show networks with non-empty SSIDs for better readability
+
+4. We added options to the commands for better flexibility:
+   - `--enable`: Enables WiFi before performing the requested action
+   - `--scan`: Triggers a WiFi scan before listing networks
+   - `--update-config`: Updates the MCP configuration with the current IP address
+
+This WiFi functionality is a significant step forward for the UnRayNeo project, as it allows for automated network connectivity and configuration. The ability to programmatically connect to WiFi networks and update the MCP server configuration will streamline the development process and make it easier to work with the RanNeo X2 AR glasses in different network environments.

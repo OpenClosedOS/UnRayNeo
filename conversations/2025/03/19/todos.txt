@@ -1,0 +1,24 @@
+# UnRayNeo Project TODOs - 2025/03/19
+
+1. Test WiFi connection functionality with a known network to verify the `connect-wifi` command works correctly.
+
+2. Explore the possibility of automating the OEM unlocking process to facilitate installing a clean version of Android.
+
+3. Create a script to identify and potentially remove Chinese spyware packages from the RanNeo X2 AR glasses.
+
+4. Investigate methods for backing up the current system before making any significant changes.
+
+5. Research compatible clean Android builds that could be installed on the RanNeo X2 AR glasses.
+
+6. Create a comprehensive setup guide documenting the steps to install clean Android on the glasses.
+
+7. Implement additional automation scripts for common tasks like:
+   - Rebooting the device safely
+   - Checking device status
+   - Managing installed applications
+
+8. Explore options for custom UI/UX improvements after installing clean Android.
+
+9. Implement error handling and recovery mechanisms in all scripts to prevent issues like the magnetic cable disconnection problem.
+
+10. Document all discovered ADB commands and their effects for future reference.
