@@ -15,9 +15,10 @@ dependencies = [
 take-screenshot = "unrayneo.cli:take_screenshot_command"
 open-android-settings = "unrayneo.cli:open_android_settings_command"
 open-android-dev-settings = "unrayneo.cli:open_android_dev_settings_command"
+close-android-settings = "unrayneo.cli:close_android_settings_command"
 list-wifis = "unrayneo.cli:list_wifis_command"
 connect-wifi = "unrayneo.cli:connect_wifi_command"
-close-android-settings = "unrayneo.cli:close_android_settings_command"
+system-dump = "unrayneo.system_dump:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
