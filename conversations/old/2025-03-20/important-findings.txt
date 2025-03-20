@@ -1,0 +1,5 @@
+- When writing instructions for AI assistants, be explicit and unambiguous about when actions should be taken
+- Triggers for actions should be simple to recognize (e.g., "when you see a message with Step Id: 1")
+- Adding context about why an instruction is important helps reinforce its priority
+- Instructions should specify the exact timing of when actions should occur (e.g., "as the FIRST action")
+- Complex pattern matching in instructions (like "just on previous line before the last USER_REQUEST") should be avoided

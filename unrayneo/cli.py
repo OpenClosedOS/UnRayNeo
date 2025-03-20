@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from unrayneo.screenshot import capture_screenshot
-from unrayneo.settings_utils import SettingsPage, open_settings
+from unrayneo.settings_utils import SettingsPage, open_settings, close_settings
 from unrayneo.wifi import (
     list_wifi_networks, 
     get_current_wifi_connection, 
@@ -70,6 +70,21 @@ def open_android_dev_settings_command():
     
     try:
         open_settings(SettingsPage.DEVELOPER_OPTIONS)
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def close_android_settings_command():
+    """Command to close Android settings on the RanNeo X2 AR glasses."""
+    parser = argparse.ArgumentParser(description="Close Android settings on RanNeo X2 AR glasses")
+    
+    # Parse args but don't use them - this is just for help text
+    parser.parse_args(sys.argv[1:])
+    
+    try:
+        close_settings()
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

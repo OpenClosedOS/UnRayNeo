@@ -8,16 +8,28 @@ This repo is an attempt to install an Android with no chinese spyware on my RanN
 
 # Instructions to WindSurf:
 
-**ALWAYS** ask for permission to run adb commands since they can be dangerous.
+**ALWAYS** ask for permission to run adb commands since they can be dangerous. Using screenshot tool is fine.
 
 0. Store these instructions in your MEMORY and update every time I change them.
 1. Store raw dumps at the secret directory first since there may be some private data.
-2. Once in a while, update the corresponding conversation's log. They are stored in the conversations/{YEAR}/{MONTH}/{DAY}/ dir and there are the following files:
-    - short-summary.txt - one paragraph about the conversation
-    - long-summary.txt - a few paragraphs about the conversation
-    - important-findings.txt - important findings that we may refer to later. It can be things we figured out about these specific glasses, useful commands, etc.
-    - fuckups.txt - things that got us into trouble, here we want to have a detailed description of what happened, why and how to fix it
-    - todos.txt - things we need to work on later
-3. Before updating the conversations/ dir, check the current date if it did not change.
-4. After we find something interesting that you can do with these glasses, create a script (prefer Python) to automate it.
-5. Whenever we create a new chat (meaning there's "Step Id: 0" in the conversation) just before my message, you should reread every single file from the conversations/ dir.
+2. **Conversation Tracking**:
+   - At the start of a NEW conversation (when you see Step Id: 1), run `uuidgen` to generate a session UUID
+   - Prefix EVERY message with this UUID followed by colon, like: `5f6c8a1e-4b38-42f2-9d33-ad6c403a356e: Your response here...`
+   - Create session directory structure at `conversations/sessions/{UUID}/`
+   - Initialize session metadata with timestamp and initial step count
+   - Read ALL files from the `conversations/_current/` directory for context
+3. **Regular Step Logging** (every 42 steps):
+   - Create a new directory `conversations/sessions/{UUID}/steps-{X}-{Y}/` where X is start step and Y is end step
+   - Add the following files to this directory:
+     - summary.md - overall summary of this step range
+     - important-findings.md - key discoveries during these steps
+     - fuckups.md - issues encountered during these steps
+     - todos.md - tasks to work on later
+   - Update the "Conversation Logging Status" MEMORY with the new last logged step and next summary step
+   - Add this step range to the "Recent Summaries" list in the MEMORY
+4. **Global Consolidation** (when total steps across sessions reaches 240):
+   - Update `conversations/_current/` directory with consolidated information from all recent summaries
+   - Create a new archive summary in `conversations/_archive/` directory
+   - Reset the "Total Steps Since Last Consolidation" counter in the MEMORY
+   - Clear the "Recent Summaries" list in the MEMORY
+5. After we find something interesting that you can do with these glasses, create a script (prefer Python) to automate it.

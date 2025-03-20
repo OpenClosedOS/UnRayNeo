@@ -1,0 +1,1 @@
+Improved the instructions for WindSurf to better handle new conversations by making the directive to read the conversations directory more explicit and actionable.

@@ -1,0 +1,3 @@
+- The original instruction for reading conversation files was poorly worded and ambiguous: "Whenever we create a new chat (meaning there's 'Step Id: 1' in the conversation just on previous line before the last '<USER_REQUEST>'), you should reread every single file from the conversations/ dir."
+- This instruction required complex pattern matching and was easy to misinterpret, causing WindSurf to miss reading the conversation files at the start of new chats
+- The instruction didn't emphasize the importance or timing of when this action should occur

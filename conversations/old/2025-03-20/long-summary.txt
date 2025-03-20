@@ -1,0 +1,11 @@
+In this conversation, we identified an issue with the instructions for WindSurf regarding when to read the conversations directory. The original instruction was ambiguous and difficult to follow, stating "Whenever we create a new chat (meaning there's 'Step Id: 1' in the conversation just on previous line before the last '<USER_REQUEST>'), you should reread every single file from the conversations/ dir."
+
+We improved this instruction to be more clear and actionable by changing it to: "As the FIRST action in EVERY new conversation (when you see a message with Step Id: 1), immediately read ALL files from the conversations/ directory before doing anything else. This is critical for maintaining context between sessions."
+
+The key improvements were:
+1. Making the timing explicit ("as the FIRST action")
+2. Clarifying the trigger condition (simply "when you see a message with Step Id: 1")
+3. Adding emphasis on priority ("immediately... before doing anything else")
+4. Explaining the purpose ("critical for maintaining context between sessions")
+
+This change should help WindSurf better maintain context between different chat sessions by ensuring it always reads the conversation history files at the start of each new conversation.

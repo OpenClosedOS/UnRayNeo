@@ -53,3 +53,34 @@ def open_settings(page: Optional[SettingsPage] = SettingsPage.MAIN) -> None:
         print(f"Command output: {e.stdout}")
         print(f"Command error: {e.stderr}")
         raise
+
+
+def close_settings() -> None:
+    """
+    Close Android settings on the RanNeo X2 AR glasses.
+    
+    This function forcibly stops the Android settings app using ADB.
+    
+    Raises:
+        subprocess.CalledProcessError: If the ADB command fails.
+    """
+    try:
+        # Force stop the settings app
+        command = ["adb", "shell", "am", "force-stop", "com.android.settings"]
+        
+        result = subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        
+        print("Closed Android settings")
+        if result.stdout:
+            print(f"Command output: {result.stdout.strip()}")
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Error closing settings: {e}")
+        print(f"Command output: {e.stdout}")
+        print(f"Command error: {e.stderr}")
+        raise
