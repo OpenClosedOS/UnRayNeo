@@ -12,9 +12,12 @@ This repo is an attempt to install an Android with no chinese spyware on my RanN
 
 0. Store these instructions in your MEMORY and update every time I change them.
 1. Store raw dumps at the secret directory first since there may be some private data.
-2. **Conversation Tracking**:
-   - At the start of a NEW conversation (when you see Step Id: 1), run `uuidgen` to generate a session UUID
-   - Prefix EVERY message with this UUID followed by colon, like: `5f6c8a1e-4b38-42f2-9d33-ad6c403a356e: Your response here...`
+2. **CRITICAL - SESSION IDENTIFICATION**:
+   - **IMMEDIATELY** at the start of a NEW conversation (when you see Step Id: 1), run `uuidgen` to generate a session UUID
+   - **YOU MUST PREFIX ABSOLUTELY EVERY RESPONSE** with this UUID followed by colon, like: 
+     ```
+     5f6c8a1e-4b38-42f2-9d33-ad6c403a356e: Your response here...
+     ```
    - Create session directory structure at `conversations/sessions/{UUID}/`
    - Initialize session metadata with timestamp and initial step count
    - Read ALL files from the `conversations/_current/` directory for context
