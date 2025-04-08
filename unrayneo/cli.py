@@ -2,8 +2,9 @@
 Command-line interface for UnRayNeo tools.
 """
 import argparse
+import subprocess
 import sys
-from pathlib import Path
+from unrayneo.command_logger import log_command
 
 from unrayneo.screenshot import capture_screenshot
 from unrayneo.settings_utils import SettingsPage, open_settings, close_settings
@@ -91,6 +92,21 @@ def close_android_settings_command():
         return 1
 
 
+def press_home_button_command():
+    """Command to press home button on the RanNeo X2 AR glasses."""
+    parser = argparse.ArgumentParser(description="Press home button on RanNeo X2 AR glasses")
+    
+    # Parse args but don't use them - this is just for help text
+    parser.parse_args(sys.argv[1:])
+    
+    try:
+        subprocess.run(["adb", "shell", "input", "keyevent", "KEYCODE_HOME"])
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def list_wifis_command():
     """Command to list available WiFi networks on the RanNeo X2 AR glasses."""
     parser = argparse.ArgumentParser(description="List available WiFi networks on RanNeo X2 AR glasses")
@@ -157,8 +173,56 @@ def list_wifis_command():
         return 1
 
 
+def list_packages_command():
+    """Command to list installed packages on the RanNeo X2 AR glasses."""
+    parser = argparse.ArgumentParser(description="List installed packages on RanNeo X2 AR glasses")
+    
+    # Parse args but don't use them - this is just for help text
+    parser.parse_args(sys.argv[1:])
+    
+    try:
+        result = subprocess.run(["adb", "shell", "pm", "list", "packages"], 
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            print("Installed packages:")
+            print(result.stdout)
+            return 0
+        else:
+            print(f"Error: {result.stderr}", file=sys.stderr)
+            return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def wrap_command():
+    """Wrapper command that runs shell command with logging."""
+    full_cmd = " ".join(sys.argv[1:])
+    return log_command(full_cmd, prefix="wrap")
+
+
 def connect_wifi_command():
     """Command to connect to a WiFi network on the RanNeo X2 AR glasses."""
+
+def launch_horizontal_firefox_command():
+    """Command to launch Firefox in horizontal mode on the RanNeo X2 AR glasses."""
+    parser = argparse.ArgumentParser(description="Launch Firefox in horizontal mode on RanNeo X2 AR glasses")
+    
+    # Parse args but don't use them - this is just for help text
+    parser.parse_args(sys.argv[1:])
+    
+    try:
+        subprocess.run([
+            "adb", "shell", "am", "start", "-n", 
+            "com.ffalcon.appcontainer/.MainActivityV4", 
+            "-a", "android.intent.action.VIEW", 
+            "-d", "appcontainer://launch?packageName=org.mozilla.firefox&className=org.mozilla.fenix.HomeActivity&sbsMode=true"
+        ])
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
     parser = argparse.ArgumentParser(description="Connect to a WiFi network on RanNeo X2 AR glasses")
     parser.add_argument(
         "ssid",

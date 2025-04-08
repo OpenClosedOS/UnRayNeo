@@ -1,6 +1,9 @@
 # UnRayNeo
 
-This repo is an attempt to install an Android with no chinese spyware on my RanNeo X2 AR glasses. I have some experience doing CTFs back in the days but since then things changed so I'll be using WindSurf to help me with this.
+
+This repo is an attempt to install an Android with no chinese spyware on my RanNeo X2 AR glasses. I have some experience doing CTFs back in the days but since then things changed so I'll be using Cline (started with WindSurf) to help me with this.
+
+WARNING: the code is ugly cuz it's mostly vibe coding
 
 # Setup:
 
@@ -36,3 +39,4 @@ This repo is an attempt to install an Android with no chinese spyware on my RanN
    - Reset the "Total Steps Since Last Consolidation" counter in the MEMORY
    - Clear the "Recent Summaries" list in the MEMORY
 5. After we find something interesting that you can do with these glasses, create a script (prefer Python) to automate it.
+6. Whenever you call some adb commands to get some info about the device add | tee sending the output also to the secret/{YEAR}-{MONTH}-{DAY}/{PATH} directory, feel free to come up with the path that is best suited for the task.

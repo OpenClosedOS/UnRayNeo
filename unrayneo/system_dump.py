@@ -151,24 +151,48 @@ def dump_partition_info(dump_dir: Path) -> None:
 
 def dump_bootloader_info(dump_dir: Path) -> None:
     """
-    Dump bootloader information.
+    Dump comprehensive bootloader information.
     """
     print("Dumping bootloader information...")
+    
+    # Create bootloader directory
+    bootloader_dir = dump_dir / "bootloader"
+    bootloader_dir.mkdir(exist_ok=True)
     
     # Get bootloader status
     _, bootloader_status, _ = run_adb_command(["adb", "shell", "getprop", "ro.boot.flash.locked"], check=False)
     _, oem_unlock_allowed, _ = run_adb_command(["adb", "shell", "getprop", "sys.oem_unlock_allowed"], check=False)
     
     bootloader_info = f"Bootloader locked: {bootloader_status.strip()}\nOEM unlock allowed: {oem_unlock_allowed.strip()}"
-    save_to_file(dump_dir / "bootloader" / "status.txt", bootloader_info)
+    save_to_file(bootloader_dir / "status.txt", bootloader_info)
     
     # Get boot info
     _, boot_slots, _ = run_adb_command(["adb", "shell", "getprop", "ro.boot.slot_suffix"], check=False)
-    save_to_file(dump_dir / "bootloader" / "boot_slot.txt", f"Current boot slot: {boot_slots.strip()}")
+    save_to_file(bootloader_dir / "boot_slot.txt", f"Current boot slot: {boot_slots.strip()}")
     
     # Get verified boot state
     _, verified_boot, _ = run_adb_command(["adb", "shell", "getprop", "ro.boot.verifiedbootstate"], check=False)
-    save_to_file(dump_dir / "bootloader" / "verified_boot.txt", f"Verified boot state: {verified_boot.strip()}")
+    save_to_file(bootloader_dir / "verified_boot.txt", f"Verified boot state: {verified_boot.strip()}")
+    
+    # Dump all boot-related properties
+    _, boot_props, _ = run_adb_command(["adb", "shell", "getprop", "|", "grep", "boot"])
+    save_to_file(bootloader_dir / "boot_properties.txt", boot_props)
+    
+    # Dump all secure boot related properties
+    _, secure_boot_props, _ = run_adb_command(["adb", "shell", "getprop", "|", "grep", "secure"])
+    save_to_file(bootloader_dir / "secure_boot_properties.txt", secure_boot_props)
+    
+    # Try to dump bootloader version
+    _, bootloader_version, _ = run_adb_command(["adb", "shell", "getprop", "ro.bootloader"], check=False)
+    save_to_file(bootloader_dir / "bootloader_version.txt", f"Bootloader version: {bootloader_version.strip()}")
+    
+    # Try to dump dtbo info
+    _, dtbo_info, _ = run_adb_command(["adb", "shell", "ls", "-la", "/dev/block/by-name/dtbo"], check=False)
+    save_to_file(bootloader_dir / "dtbo_info.txt", dtbo_info)
+    
+    # Try to dump vbmeta info
+    _, vbmeta_info, _ = run_adb_command(["adb", "shell", "ls", "-la", "/dev/block/by-name/vbmeta"], check=False)
+    save_to_file(bootloader_dir / "vbmeta_info.txt", vbmeta_info)
 
 
 def dump_installed_packages(dump_dir: Path) -> None:
@@ -491,20 +515,45 @@ def dump_partition_contents(dump_dir: Path) -> None:
     
     print(f"Identified {len(partition_paths)} partitions.")
     
-    # Attempt to dump partitions
-    partitions_to_dump = ["boot", "system", "vendor", "recovery", "userdata"]
+    # Attempt to dump ALL partitions, not just a predefined list
     partitions_dir = dump_dir / "partitions" / "images"
     partitions_dir.mkdir(exist_ok=True)
     
-    for partition_name in partitions_to_dump:
-        if partition_name in partition_paths:
-            source_path = partition_paths[partition_name]
-            print(f"Attempting to dump {partition_name} partition from {source_path}...")
-            remote_path = f"/sdcard/{partition_name}.img"
+    # Get partition info for all partitions
+    for partition_name, source_path in partition_paths.items():
+        print(f"Getting info for {partition_name} partition at {source_path}...")
+        
+        # Get partition size
+        _, size_output, _ = run_adb_command(["adb", "shell", f"blockdev --getsize64 {source_path}"], check=False)
+        if size_output and "No such file" not in size_output and "Permission denied" not in size_output:
+            size_bytes = int(size_output.strip())
+            size_mb = size_bytes / (1024 * 1024)
+            partition_info = f"Partition: {partition_name}\nPath: {source_path}\nSize: {size_bytes} bytes ({size_mb:.2f} MB)"
+            save_to_file(partitions_dir / f"{partition_name}_info.txt", partition_info)
+    
+    # Attempt to dump all identified partitions
+    for partition_name, source_path in partition_paths.items():
+        print(f"Attempting to dump {partition_name} partition from {source_path}...")
+        remote_path = f"/sdcard/{partition_name}.img"
+        
+        # Use dd to dump the partition - this may fail without root
+        dump_cmd = ["adb", "shell", f"dd if={source_path} of={remote_path} bs=4096"]
+        returncode, stdout, stderr = run_adb_command(dump_cmd, check=False)
+        
+        if returncode == 0:
+            # Pull the file
+            pull_cmd = ["adb", "pull", remote_path, str(partitions_dir / f"{partition_name}.img")]
+            run_adb_command(pull_cmd, check=False)
             
-            # Use dd to dump the partition - this may fail without root
-            dump_cmd = ["adb", "shell", f"dd if={source_path} of={remote_path} bs=4096"]
-            returncode, stdout, stderr = run_adb_command(dump_cmd, check=False)
+            # Remove remote file
+            run_adb_command(["adb", "shell", f"rm {remote_path}"], check=False)
+        else:
+            print(f"Failed to dump {partition_name} partition: {stderr}")
+            
+            # Try direct read with cat (might still fail without root)
+            print(f"Trying alternative method for {partition_name}...")
+            cat_cmd = ["adb", "shell", f"cat {source_path} > {remote_path}"]
+            returncode, stdout, stderr = run_adb_command(cat_cmd, check=False)
             
             if returncode == 0:
                 # Pull the file
@@ -514,24 +563,7 @@ def dump_partition_contents(dump_dir: Path) -> None:
                 # Remove remote file
                 run_adb_command(["adb", "shell", f"rm {remote_path}"], check=False)
             else:
-                print(f"Failed to dump {partition_name} partition: {stderr}")
-                
-                # Try direct read with cat (might still fail without root)
-                print(f"Trying alternative method for {partition_name}...")
-                cat_cmd = ["adb", "shell", f"cat {source_path} > {remote_path}"]
-                returncode, stdout, stderr = run_adb_command(cat_cmd, check=False)
-                
-                if returncode == 0:
-                    # Pull the file
-                    pull_cmd = ["adb", "pull", remote_path, str(partitions_dir / f"{partition_name}.img")]
-                    run_adb_command(pull_cmd, check=False)
-                    
-                    # Remove remote file
-                    run_adb_command(["adb", "shell", f"rm {remote_path}"], check=False)
-                else:
-                    print(f"Alternative method also failed: {stderr}")
-        else:
-            print(f"Partition {partition_name} not found in identified partitions.")
+                print(f"Alternative method also failed: {stderr}")
     
     # Check if any partitions were dumped
     dumped_files = list(partitions_dir.glob("*.img"))
@@ -608,6 +640,242 @@ def create_summary(dump_dir: Path) -> None:
     print(f"Summary created at {dump_dir / 'summary.md'}")
 
 
+def dump_bluetooth_info(dump_dir: Path) -> None:
+    """
+    Dump detailed Bluetooth information.
+    """
+    print("Dumping Bluetooth information...")
+    
+    # Create Bluetooth directory
+    bluetooth_dir = dump_dir / "bluetooth"
+    bluetooth_dir.mkdir(exist_ok=True)
+    
+    # Dump Bluetooth manager info
+    _, bluetooth_manager, _ = run_adb_command(["adb", "shell", "dumpsys", "bluetooth_manager"])
+    save_to_file(bluetooth_dir / "bluetooth_manager.txt", bluetooth_manager)
+    
+    # Dump Bluetooth processes
+    _, bluetooth_processes, _ = run_adb_command(["adb", "shell", "ps", "-A", "|", "grep", "-i", "bluetooth"])
+    save_to_file(bluetooth_dir / "bluetooth_processes.txt", bluetooth_processes)
+    
+    # Dump Bluetooth GATT services
+    _, bluetooth_gatt, _ = run_adb_command(["adb", "shell", "dumpsys", "bluetooth_manager", "|", "grep", "-A", "50", "GATT"])
+    save_to_file(bluetooth_dir / "bluetooth_gatt.txt", bluetooth_gatt)
+    
+    # Dump Bluetooth profiles
+    _, bluetooth_profiles, _ = run_adb_command(["adb", "shell", "dumpsys", "bluetooth_manager", "|", "grep", "-i", "profile", "-A", "5"])
+    save_to_file(bluetooth_dir / "bluetooth_profiles.txt", bluetooth_profiles)
+
+
+def dump_input_devices(dump_dir: Path) -> None:
+    """
+    Dump information about input devices.
+    """
+    print("Dumping input device information...")
+    
+    # Create input directory
+    input_dir = dump_dir / "input"
+    input_dir.mkdir(exist_ok=True)
+    
+    # Dump input manager info
+    _, input_manager, _ = run_adb_command(["adb", "shell", "dumpsys", "input"])
+    save_to_file(input_dir / "input_manager.txt", input_manager)
+    
+    # List input devices
+    _, input_devices, _ = run_adb_command(["adb", "shell", "ls", "-l", "/dev/input/"])
+    save_to_file(input_dir / "input_devices.txt", input_devices)
+    
+    # Dump input method services
+    _, input_method, _ = run_adb_command(["adb", "shell", "dumpsys", "input_method"])
+    save_to_file(input_dir / "input_method.txt", input_method)
+    
+    # Dump accessibility services
+    _, accessibility, _ = run_adb_command(["adb", "shell", "dumpsys", "accessibility"])
+    save_to_file(input_dir / "accessibility.txt", accessibility)
+
+
+def dump_services_info(dump_dir: Path) -> None:
+    """
+    Dump information about system services.
+    """
+    print("Dumping system services information...")
+    
+    # Create services directory
+    services_dir = dump_dir / "services"
+    services_dir.mkdir(exist_ok=True)
+    
+    # Get list of all services
+    _, services_list, _ = run_adb_command(["adb", "shell", "service", "list"])
+    save_to_file(services_dir / "services_list.txt", services_list)
+    
+    # Dump important services
+    important_services = [
+        "activity",
+        "package",
+        "window",
+        "display",
+        "power",
+        "battery",
+        "usb",
+        "network_management",
+        "wifi",
+        "audio",
+        "media.audio_policy",
+        "sensorservice",
+        "camera",
+        "permission"
+    ]
+    
+    for service in important_services:
+        _, service_dump, _ = run_adb_command(["adb", "shell", "dumpsys", service], check=False)
+        save_to_file(services_dir / f"{service}.txt", service_dump)
+    
+    # Dump Mercury-related services
+    mercury_packages = [
+        "com.ffalconxr.mercury.launcher",
+        "com.leiniao.scanner",
+        "com.tcl.xrmanager.main",
+        "com.ffalcon.xr.unity.demo"
+    ]
+    
+    for package in mercury_packages:
+        _, package_info, _ = run_adb_command(["adb", "shell", "dumpsys", "package", package], check=False)
+        save_to_file(services_dir / f"{package.replace('.', '_')}.txt", package_info)
+
+
+def dump_firmware_info(dump_dir: Path) -> None:
+    """
+    Dump firmware and hardware-related information.
+    """
+    print("Dumping firmware information...")
+    
+    # Create firmware directory
+    firmware_dir = dump_dir / "firmware"
+    firmware_dir.mkdir(exist_ok=True)
+    
+    # Dump kernel information
+    _, kernel_version, _ = run_adb_command(["adb", "shell", "uname", "-a"])
+    save_to_file(firmware_dir / "kernel_version.txt", kernel_version)
+    
+    # Dump kernel modules
+    _, kernel_modules, _ = run_adb_command(["adb", "shell", "lsmod"])
+    save_to_file(firmware_dir / "kernel_modules.txt", kernel_modules)
+    
+    # Dump firmware version
+    _, firmware_version, _ = run_adb_command(["adb", "shell", "getprop", "ro.build.version.incremental"])
+    save_to_file(firmware_dir / "firmware_version.txt", f"Firmware version: {firmware_version.strip()}")
+    
+    # Dump hardware info
+    _, hardware_info, _ = run_adb_command(["adb", "shell", "getprop", "ro.hardware"])
+    save_to_file(firmware_dir / "hardware_info.txt", f"Hardware: {hardware_info.strip()}")
+    
+    # Dump SOC info
+    _, soc_info, _ = run_adb_command(["adb", "shell", "getprop", "ro.board.platform"])
+    save_to_file(firmware_dir / "soc_info.txt", f"SOC Platform: {soc_info.strip()}")
+    
+    # Try to get device tree info
+    _, device_tree, _ = run_adb_command(["adb", "shell", "ls", "-la", "/proc/device-tree"], check=False)
+    save_to_file(firmware_dir / "device_tree.txt", device_tree)
+    
+    # Dump all hardware-related properties
+    _, hw_props, _ = run_adb_command(["adb", "shell", "getprop", "|", "grep", "hardware"])
+    save_to_file(firmware_dir / "hardware_properties.txt", hw_props)
+    
+    # Dump all firmware-related properties
+    _, fw_props, _ = run_adb_command(["adb", "shell", "getprop", "|", "grep", "firmware"])
+    save_to_file(firmware_dir / "firmware_properties.txt", fw_props)
+
+
+def dump_security_info(dump_dir: Path) -> None:
+    """
+    Dump security-related information.
+    """
+    print("Dumping security information...")
+    
+    # Create security directory
+    security_dir = dump_dir / "security"
+    security_dir.mkdir(exist_ok=True)
+    
+    # Dump SELinux status
+    _, selinux_status, _ = run_adb_command(["adb", "shell", "getenforce"])
+    save_to_file(security_dir / "selinux_status.txt", f"SELinux status: {selinux_status.strip()}")
+    
+    # Dump SELinux contexts
+    _, selinux_contexts, _ = run_adb_command(["adb", "shell", "ls", "-Z", "/"])
+    save_to_file(security_dir / "selinux_root_contexts.txt", selinux_contexts)
+    
+    # Dump security-related properties
+    _, security_props, _ = run_adb_command(["adb", "shell", "getprop", "|", "grep", "security"])
+    save_to_file(security_dir / "security_properties.txt", security_props)
+    
+    # Dump secure properties
+    _, secure_props, _ = run_adb_command(["adb", "shell", "getprop", "|", "grep", "secure"])
+    save_to_file(security_dir / "secure_properties.txt", secure_props)
+    
+    # Check for root
+    _, su_check, _ = run_adb_command(["adb", "shell", "which", "su"], check=False)
+    save_to_file(security_dir / "su_check.txt", f"su binary found: {'Yes' if su_check.strip() else 'No'}")
+    
+    # Check for Magisk
+    _, magisk_check, _ = run_adb_command(["adb", "shell", "ls", "-la", "/sbin/.magisk"], check=False)
+    save_to_file(security_dir / "magisk_check.txt", f"Magisk found: {'Yes' if "No such file" not in magisk_check else 'No'}")
+
+
+def dump_hardware_info(dump_dir: Path) -> None:
+    """
+    Dump detailed hardware information.
+    """
+    print("Dumping hardware information...")
+    
+    # Create hardware directory
+    hardware_dir = dump_dir / "hardware"
+    hardware_dir.mkdir(exist_ok=True)
+    
+    # Dump CPU info
+    _, cpu_info, _ = run_adb_command(["adb", "shell", "cat", "/proc/cpuinfo"])
+    save_to_file(hardware_dir / "cpu_info.txt", cpu_info)
+    
+    # Dump memory info
+    _, memory_info, _ = run_adb_command(["adb", "shell", "cat", "/proc/meminfo"])
+    save_to_file(hardware_dir / "memory_info.txt", memory_info)
+    
+    # Dump GPU info
+    _, gpu_info, _ = run_adb_command(["adb", "shell", "dumpsys", "SurfaceFlinger"])
+    save_to_file(hardware_dir / "gpu_info.txt", gpu_info)
+    
+    # Dump display info
+    _, display_info, _ = run_adb_command(["adb", "shell", "dumpsys", "display"])
+    save_to_file(hardware_dir / "display_info.txt", display_info)
+    
+    # Dump sensor info
+    _, sensor_info, _ = run_adb_command(["adb", "shell", "dumpsys", "sensorservice"])
+    save_to_file(hardware_dir / "sensor_info.txt", sensor_info)
+    
+    # Dump camera info
+    _, camera_info, _ = run_adb_command(["adb", "shell", "dumpsys", "media.camera"])
+    save_to_file(hardware_dir / "camera_info.txt", camera_info)
+    
+    # Dump audio info
+    _, audio_info, _ = run_adb_command(["adb", "shell", "dumpsys", "audio"])
+    save_to_file(hardware_dir / "audio_info.txt", audio_info)
+    
+    # Dump battery info
+    _, battery_info, _ = run_adb_command(["adb", "shell", "dumpsys", "battery"])
+    save_to_file(hardware_dir / "battery_info.txt", battery_info)
+    
+    # Dump thermal info
+    _, thermal_info, _ = run_adb_command(["adb", "shell", "dumpsys", "thermalservice"], check=False)
+    save_to_file(hardware_dir / "thermal_info.txt", thermal_info)
+    
+    # Dump USB info
+    _, usb_info, _ = run_adb_command(["adb", "shell", "dumpsys", "usb"])
+    save_to_file(hardware_dir / "usb_info.txt", usb_info)
+    
+    # Dump device tree if available
+    _, device_tree, _ = run_adb_command(["adb", "shell", "find", "/proc/device-tree", "-type", "f", "-exec", "echo", "{}", ";", "-exec", "cat", "{}", ";", "2>/dev/null"], check=False)
+    save_to_file(hardware_dir / "device_tree_dump.txt", device_tree)
+
+
 def main():
     """Main function to coordinate the system dump."""
     print(f"Starting system dump for RanNeo X2 AR Glasses...")
@@ -629,6 +897,16 @@ def main():
     
     # Dump memory information
     dump_memory_info(dump_dir)
+    
+    # Dump Bluetooth and input device information
+    dump_bluetooth_info(dump_dir)
+    dump_input_devices(dump_dir)
+    dump_services_info(dump_dir)
+    
+    # Dump firmware, hardware, and security information
+    dump_firmware_info(dump_dir)
+    dump_hardware_info(dump_dir)
+    dump_security_info(dump_dir)
     
     # Run partition dump without asking
     dump_partition_contents(dump_dir)

@@ -16,9 +16,13 @@ take-screenshot = "unrayneo.cli:take_screenshot_command"
 open-android-settings = "unrayneo.cli:open_android_settings_command"
 open-android-dev-settings = "unrayneo.cli:open_android_dev_settings_command"
 close-android-settings = "unrayneo.cli:close_android_settings_command"
+press-home-button = "unrayneo.cli:press_home_button_command"
 list-wifis = "unrayneo.cli:list_wifis_command"
 connect-wifi = "unrayneo.cli:connect_wifi_command"
+list-packages = "unrayneo.cli:list_packages_command"
+wrap = "unrayneo.cli:wrap_command"
 system-dump = "unrayneo.system_dump:main"
+launch-horizontal-firefox = "unrayneo.cli:launch_horizontal_firefox_command"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
